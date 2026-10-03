@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>STT 比較</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="/style.css" />
+<script type="module" src="/js/app.js"></script>
+</head>
+<body>
+<main>
+  <h1>STT 比較: MAI-Transcribe-2 vs ElevenLabs Scribe v2</h1>
+
+  <div class="panel controls">
+    <label>文章 <select id="script"><option value="">台本なし（自由に話す）</option></select></label>
+    <label>録音環境 <input type="text" id="env" placeholder="例: オフィス" /></label>
+    <label>言語
+      <select id="lang">
+        <option value="">自動検出</option>
+        <option value="ja" selected>ja</option>
+        <option value="en">en</option>
+      </select>
+    </label>
+    <label>確定までの無音 <input type="number" id="silenceMs" value="800" step="100" /> ms</label>
+    <label>発話判定の音量閾値 <input type="number" id="threshold" value="0.015" step="0.005" /></label>
+  </div>
+
+  <div class="panel controls">
+    <button class="btn primary" id="record">● 録音開始</button>
+    <div class="meter" id="meterBox"><div id="meter"></div></div>
+    <span class="status" id="status">待機中</span>
+    <span class="spacer"></span>
+    <label>音声ファイルをバッチで送る <input type="file" id="file" accept="audio/*" /></label>
+  </div>
+
+  <div class="panel script" id="scriptBox" hidden>
+    <div class="scriptMeta" id="scriptMeta"></div>
+    <div class="scriptText" id="scriptText"></div>
+  </div>
+
+  <div class="panel summary" id="summary" hidden>
+    <h2>結果</h2>
+    <table>
+      <thead><tr><th>方式</th><th>モデル</th><th class="num">簡易 CER</th><th class="num">発話終了→確定（平均）</th><th class="num">停止→最終確定 / API 応答</th><th class="num">料金（USD）</th></tr></thead>
+      <tbody id="summaryRows"></tbody>
+    </table>
+    <p class="note" id="saved"></p>
+  </div>
+
+  <h3>リアルタイム（録音中に同時送信）</h3>
+  <div class="grid" id="streamCards"></div>
+  <h3>バッチ（停止後に同じ録音を送信）</h3>
+  <div class="grid" id="batchCards"></div>
+
+  <p class="note">
+    同じマイク音声を両方のリアルタイム API へ同時に送り、停止後に同じ録音をバッチ API へ送ります。
+    ElevenLabs はサーバー側の VAD で自動確定します。MAI はサーバー側の VAD がないため、ブラウザで同じ無音秒数を検出して commit を送ります。
+    「発話開始」「発話終了」はブラウザ側の音量判定なので目安です。
+    簡易 CER は記号を除き、算用数字を漢数字にそろえてから計算しています。結果と録音は results/runs/ に保存されます。
+  </p>
+
+  <details class="panel">
+    <summary>イベントログ（音声チャンク以外の送受信）</summary>
+    <div id="log"></div>
+  </details>
+</main>
+
+<template id="streamCardTpl">
+  <section class="panel card">
+    <h2><span class="title"></span><small class="model"></small></h2>
+    <div class="cardStatus">—</div>
+    <div class="transcript"></div>
+    <div class="metrics">
+      <div class="metric"><div class="k">接続〜準備完了</div><div class="v" data-m="connect">—</div></div>
+      <div class="metric"><div class="k">録音開始〜最初の部分結果</div><div class="v" data-m="first">—</div></div>
+      <div class="metric"><div class="k">発話開始→初回部分結果（平均）</div><div class="v" data-m="ttfpAvg">—</div></div>
+      <div class="metric"><div class="k">発話終了→確定（平均）</div><div class="v" data-m="eosAvg">—</div></div>
+      <div class="metric"><div class="k">停止→最終確定</div><div class="v" data-m="stop">—</div></div>
+      <div class="metric"><div class="k">送信音声長</div><div class="v" data-m="audio">—</div></div>
+      <div class="metric"><div class="k">料金（USD）</div><div class="v" data-m="cost">—</div></div>
+      <div class="metric"><div class="k">トークン</div><div class="v small" data-m="tokens">—</div></div>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>確定テキスト</th><th class="num">発話開始→初回部分結果</th><th class="num">発話終了→確定</th><th class="num extraHead"></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</template>
+
+<template id="batchCardTpl">
+  <section class="panel card">
+    <h2><span class="title"></span><small class="model"></small></h2>
+    <div class="cardStatus">—</div>
+    <div class="transcript"></div>
+    <div class="metrics">
+      <div class="metric"><div class="k">往復時間（ブラウザ計測）</div><div class="v" data-m="rtt">—</div></div>
+      <div class="metric"><div class="k">API 応答時間（サーバー計測）</div><div class="v" data-m="server">—</div></div>
+      <div class="metric"><div class="k">RTF（応答時間/音声長）</div><div class="v" data-m="rtf">—</div></div>
+      <div class="metric"><div class="k">音声長</div><div class="v" data-m="audio">—</div></div>
+      <div class="metric"><div class="k">料金（USD）</div><div class="v" data-m="cost">—</div></div>
+      <div class="metric"><div class="k">検出言語 / リージョン</div><div class="v small" data-m="lang">—</div></div>
+      <div class="metric"><div class="k">トークン</div><div class="v small" data-m="tokens">—</div></div>
+    </div>
+  </section>
+</template>
+</body>
+</html>

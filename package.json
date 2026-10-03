@@ -1,0 +1,19 @@
+{
+  "name": "ms-mai-streaming-stt-test",
+  "private": true,
+  "type": "module",
+  "description": "MAI-Transcribe-2 と ElevenLabs Scribe v2 の日本語文字起こしを、同じマイク音声で比較する検証ツール",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "fixture": "bash scripts/make-fixture.sh",
+    "load:batch": "node --env-file=.env scripts/load-test.mjs batch --file fixtures/ja-8s.wav",
+    "load:stream": "node --env-file=.env scripts/load-test.mjs stream --file fixtures/ja-8s.wav"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+.env
+# 録音 (読み上げた本人の声) と計測結果
+results/
+# 合成音声は各自 npm run fixture で生成する
+fixtures/
+# ローカルのエージェント用スキル
+.agents/
+.claude/
+skills-lock.json
