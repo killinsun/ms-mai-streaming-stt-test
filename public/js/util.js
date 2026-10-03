@@ -61,9 +61,11 @@ export function log(tag, dir, obj) {
 }
 
 // どちらの API もトークン数は仕様にないが、応答に usage / token 系の項目があれば合計して表示する
+// (max_tokens_to_recompute のような設定値は除く)
 export function collectUsage(obj, acc = {}, prefix = "") {
   if (!obj || typeof obj !== "object") return acc;
   for (const [k, v] of Object.entries(obj)) {
+    if (k.startsWith("max_")) continue;
     const key = prefix ? `${prefix}.${k}` : k;
     if (typeof v === "number" && (prefix || /usage|token/i.test(k))) acc[key] = (acc[key] || 0) + v;
     else if (v && typeof v === "object") collectUsage(v, acc, prefix || /usage|token/i.test(k) ? key : "");

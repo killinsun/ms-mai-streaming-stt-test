@@ -30,6 +30,7 @@ export function normalizeForCer(text) {
   return (text ?? "")
     .normalize("NFKC")
     .replace(/%/g, "パーセント")
+    .replace(/(\d)\s*(mm|cm|km)/g, (_, d, u) => d + { mm: "ミリ", cm: "センチ", km: "キロ" }[u])
     .replace(/(\d),(?=\d{3})/g, "$1")
     .replace(/(\d)\.(\d)/g, "$1点$2")
     // 電話番号のようなハイフン区切りの数字列は 1 桁ずつ読む

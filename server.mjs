@@ -139,9 +139,10 @@ const server = http.createServer(async (req, res) => {
     } else if (req.method === "POST" && /^\/api\/runs\/[\w-]+\.(json|wav)$/.test(url.pathname)) {
       const dir = new URL("./results/runs/", import.meta.url);
       await mkdir(dir, { recursive: true });
-      const file = new URL(url.pathname.slice("/api/runs/".length), dir);
-      await writeFile(file, await readBody(req));
-      sendJson(res, 200, { path: file.pathname });
+      const name = url.pathname.slice("/api/runs/".length);
+      await writeFile(new URL(name, dir), await readBody(req));
+      // 画面にはリポジトリからの相対パスだけを出す (スクリーンショットにホームディレクトリが写らないように)
+      sendJson(res, 200, { path: `results/runs/${name}` });
     } else if (req.method === "GET") {
       await serveStatic(url.pathname, res);
     } else {
